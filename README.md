@@ -1,14 +1,14 @@
-# claude-skills
+# claude-orchestrator-brain
 
-个人在用的 [Claude Code](https://docs.claude.com/en/docs/claude-code) 通用 skill 和 output style。
+让一个 [Claude Code](https://docs.claude.com/en/docs/claude-code) 会话当「主脑」，调度同一项目里多个并行开发的会话。
 
-## brain：主脑会话
+> 非官方项目，与 Anthropic 无关联。
 
-同一个项目里同时跑多个 Claude Code 会话时，指定其中一个会话当「主脑」，其他会话都是分支会话。主脑只做四件事：**派活、独立验收、合入、记账**，自己不写实现代码，也不展开设计讨论。
+同一个项目里同时跑多个 Claude Code 会话时，指定其中一个会话当主脑，其他会话都是分支会话。主脑只做四件事：**派活、独立验收、合入、记账**，自己不写实现代码，也不展开设计讨论。
 
-适合这样的工作方式：一个项目同时有好几条功能或修复分支在飞，每条分支交给一个独立会话去做，你只和主脑对话。
+适合这样的工作方式：一个项目同时有好几条功能或修复分支在飞，每条分支交给一个独立会话去做，你只和主脑对话。另外还可以随手开讨论会话，把有价值的结论交回主脑。
 
-### 解决的问题
+## 解决的问题
 
 | 没有主脑时 | brain 的做法 |
 |---|---|
@@ -20,7 +20,7 @@
 | 会话越跑越长，主脑忘了自己的角色 | output style 常驻系统提示，压缩后也不会丢。 |
 | 讨论会话的结论散落在各处，或者没经确认就被当成定案 | `/brain-handback` 分类、写成文档再交回；口头决定要回主脑确认后才生效。 |
 
-### 文件
+## 文件
 
 ```
 .claude-plugin/          plugin 与 marketplace 清单
@@ -34,32 +34,32 @@ output-styles/brain.md   主脑角色约束（常驻系统提示）
 install.sh               软链接安装
 ```
 
-### 安装
+## 安装
 
 **方式一：plugin（推荐给只用不改的人）**
 
 在 Claude Code 里执行：
 
 ```
-/plugin marketplace add Anormallylee/claude-skills
-/plugin install claude-skills@claude-skills
+/plugin marketplace add Anormallylee/claude-orchestrator-brain
+/plugin install orchestrator@claude-orchestrator-brain
 ```
 
 plugin 目前不支持打包 output style，所以 output style 需要另外装一次：
 
 ```bash
-git clone https://github.com/Anormallylee/claude-skills.git
-cd claude-skills
+git clone https://github.com/Anormallylee/claude-orchestrator-brain.git
+cd claude-orchestrator-brain
 ./install.sh --styles-only
 ```
 
-用 plugin 安装后，命令名会带上前缀：`/claude-skills:brain`、`/claude-skills:brain-handback`。
+用 plugin 安装后，命令名会带上前缀：`/orchestrator:brain`、`/orchestrator:brain-handback`。
 
 **方式二：软链接（适合要改 skill 的人）**
 
 ```bash
-git clone https://github.com/Anormallylee/claude-skills.git
-cd claude-skills
+git clone https://github.com/Anormallylee/claude-orchestrator-brain.git
+cd claude-orchestrator-brain
 ./install.sh
 ```
 
@@ -67,7 +67,7 @@ skill 和 output style 都会以软链接的形式装到 `~/.claude/` 下，命�
 
 两种方式只选一种。都装的话，菜单里会出现两份同样的 skill。
 
-### 使用
+## 使用
 
 **主脑**：在项目里新开一个会话，输入 `/brain`。
 
@@ -92,9 +92,23 @@ skill 和 output style 都会以软链接的形式装到 `~/.claude/` 下，命�
 
 **建议按周轮换主脑会话。** 周末让主脑收尾，它会整理台账并覆盖 `handoff.md`。下周开新会话，粘贴 `handoff.md` 末尾的开场白即可。
 
-### 依赖
+## 兼容性
 
-- 会话管理用到 Claude Code 桌面版的 `spawn_task`、`SendMessage`、`list_sessions`、`archive_session`、`set_session_output_style`。命令行版本没有其中一部分工具，需要手动开会话、转发回报。
+**目前只在 Claude Code 桌面版上验证过。** 调度依赖它的跨会话能力：
+
+| 能力 | 用到的工具 |
+|---|---|
+| 开新会话派活 | `spawn_task` |
+| 会话之间互发消息（派活、回报、交回） | `SendMessage`、`ListAgents` |
+| 盘点和归档会话 | `list_sessions`、`get_session`、`archive_session` |
+| 主脑切换 output style | `set_session_output_style` |
+
+- **Claude Code 命令行版**：只有其中一部分工具。缺的部分要你手动完成，比如自己开会话、转发回报、归档会话。
+- **其他 AI 编程工具**：未验证，不保证能用。
+- **可以通用的部分**：台账增删改、自报不算验收、变异探针、契约先行、按周交接这些做法，本身跟工具无关，在任何工具里都可以手动照搬。
+
+## 其他说明
+
 - skill 只能手动调用（`disable-model-invocation: true`），不会被自动触发。
 
 ## 许可证

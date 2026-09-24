@@ -1,14 +1,14 @@
 {
-  "name": "claude-skills",
+  "name": "claude-orchestrator-brain",
   "owner": {
     "name": "Anormallylee"
   },
   "metadata": {
-    "description": "Anormallylee 的通用 Claude Code skill"
+    "description": "Claude Code 多会话调度：主脑会话 + 讨论交回"
   },
   "plugins": [
     {
-      "name": "claude-skills",
+      "name": "orchestrator",
       "source": "./",
       "description": "主脑会话调度：brain + brain-handback"
     }

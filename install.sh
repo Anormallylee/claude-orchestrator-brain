@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # 把本仓库的 skill 和 output style 软链接到 ~/.claude/
-# 已存在的非链接文件移到 ~/.claude/backups/claude-skills-<时间>/（放在 skills/ 里会被当成重复 skill 加载）
+# 已存在的非链接文件移到 ~/.claude/backups/claude-orchestrator-brain-<时间>/（放在 skills/ 里会被当成重复 skill 加载）
 set -euo pipefail
 
 REPO="$(cd "$(dirname "$0")" && pwd)"
 CLAUDE_DIR="${CLAUDE_DIR:-$HOME/.claude}"
-BACKUP="$CLAUDE_DIR/backups/claude-skills-$(date +%Y%m%d%H%M%S)"
+BACKUP="$CLAUDE_DIR/backups/claude-orchestrator-brain-$(date +%Y%m%d%H%M%S)"
 
 link() {
   local src="$1" dst="$2"

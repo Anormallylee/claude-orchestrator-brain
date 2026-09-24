@@ -47,7 +47,7 @@ commit message 用 `docs(brain): <动作>`，完整历史交给 git，不在台�
 
 ## 接收讨论会话的交回
 
-讨论会话通过 `/brain-handback`（plugin 安装时为 `/claude-skills:brain-handback`）交回时，文档会落在 gap-report 目录或 `brain/inbox/`。主脑的处理：
+讨论会话通过 `/brain-handback`（plugin 安装时为 `/orchestrator:brain-handback`）交回时，文档会落在 gap-report 目录或 `brain/inbox/`。主脑的处理：
 
 - **缺陷/缺口**：去重、定优先级，放进台账 §3 队列。
 - **待拍板**：放进台账 §2，标注"讨论会话转达，待确认"，并附上用户原话。然后问用户："<X>，确认吗？"用户确认后，才能写进 decisions，才能据此派活。
