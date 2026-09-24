@@ -103,7 +103,12 @@ skill 和 output style 都会以软链接的形式装到 `~/.claude/` 下，命�
 | 盘点和归档会话 | `list_sessions`、`get_session`、`archive_session` |
 | 主脑切换 output style | `set_session_output_style` |
 
-- **Claude Code 命令行版**：只有其中一部分工具。缺的部分要你手动完成，比如自己开会话、转发回报、归档会话。
+- **Claude Code 命令行版**：skill、plugin、output style 都能用。桌面版专属的工具（名字带 `ccd_` 前缀：开新会话、盘点和归档会话、切 output style）在命令行版里没有，skill 会自动退回手动方式：
+  - 主脑把派活提示贴出来，你自己开新会话粘贴进去；
+  - output style 由你手动切换；
+  - 归档改为提醒你自己关掉会话。
+
+  `SendMessage` / `ListAgents` 是核心工具，命令行版大概率可以用，但还没实测。
 - **其他 AI 编程工具**：未验证，不保证能用。
 - **可以通用的部分**：台账增删改、自报不算验收、变异探针、契约先行、按周交接这些做法，本身跟工具无关，在任何工具里都可以手动照搬。
 
