@@ -94,23 +94,29 @@ skill 和 output style 都会以软链接的形式装到 `~/.claude/` 下，命�
 
 ## 兼容性
 
-**目前只在 Claude Code 桌面版上验证过。** 调度依赖它的跨会话能力：
+前提：**一个人在自己的环境里调度多个会话**。所有会话必须在同一台机器、同一个系统用户下，因为会话之间的消息走的是每个 Claude Code 进程在 `/tmp` 下开的本机 socket，不经过任何服务器。
 
-| 能力 | 用到的工具 |
-|---|---|
-| 开新会话派活 | `spawn_task` |
-| 会话之间互发消息（派活、回报、交回） | `SendMessage`、`ListAgents` |
-| 盘点和归档会话 | `list_sessions`、`get_session`、`archive_session` |
-| 主脑切换 output style | `set_session_output_style` |
+| 环境 | 能否使用 | 自动化程度 | 验证状态 |
+|---|---|---|---|
+| 桌面 App（macOS）Code 标签页 | ✅ 完整可用 | 全自动：主脑自己开会话、收回报、归档、切 output style | 已实测 |
+| 命令行版（macOS） | ✅ 可用 | 半自动：会话之间互发消息是自动的；开会话要手动；没有归档这一步；output style 写进设置文件 | 已实测：有 `SendMessage` / `ListAgents`，发出的消息能送到其他会话 |
+| 命令行版（Linux） | 🟡 预计同 macOS 命令行版 | 同上 | 未实测，消息通道机制相同 |
+| VS Code / JetBrains 插件 | 🟡 预计同命令行版 | 同上 | 未实测 |
+| 桌面 App（Windows） | ❓ 未知 | — | 未实测 |
+| 网页版 / 云端会话 | ❌ 不适合当分支会话 | — | 云端会话能收消息，但暂时不能回发，回报回不到主脑 |
+| 其他 AI 编程工具 | ❌ skill 用不了 | 只能手动照搬做法 | — |
 
-- **Claude Code 命令行版**：skill、plugin、output style 都能用。桌面版专属的工具（名字带 `ccd_` 前缀：开新会话、盘点和归档会话、切 output style）在命令行版里没有，skill 会自动退回手动方式：
-  - 主脑把派活提示贴出来，你自己开新会话粘贴进去；
-  - output style 由你手动切换；
-  - 归档改为提醒你自己关掉会话。
+欢迎在 issue 里补充实测结果，尤其是 Linux、Windows 和 IDE 插件。
 
-  `SendMessage` / `ListAgents` 是核心工具，命令行版大概率可以用，但还没实测。
-- **其他 AI 编程工具**：未验证，不保证能用。
-- **可以通用的部分**：台账增删改、自报不算验收、变异探针、契约先行、按周交接这些做法，本身跟工具无关，在任何工具里都可以手动照搬。
+**桌面 App 专属的工具**（名字带 `ccd_` 前缀）：`spawn_task`（开新会话派活）、`list_sessions` / `get_session` / `archive_session`（盘点和归档会话）、`set_session_output_style`（切 output style）。其他环境里没有这些工具，skill 会自动退回手动方式，不会报错停下。
+
+**纯命令行版里怎么派活：**
+- **推荐**：用 tmux 或终端分屏开几个窗格，一个窗格跑一个 `claude`。主脑把派活提示贴出来，你粘贴到对应窗格。回报通过 `SendMessage` 自动回到主脑。
+- **全自动**：主脑用 `Agent` 工具派子代理，每个子代理用独立的 worktree。代价是你没法单独和子代理对话，子代理跑的时候也会占用主脑的上下文。
+- output style 可以写进项目的 `.claude/settings.local.json`：`{"outputStyle": "brain"}`。
+- 命令行会话的名字每次启动都会变，比如 `<目录名>-51`。主脑每次调用 `/brain` 都会重新登记自己的名字，所以不影响使用；想用固定名字的话，可以执行 `/rename`。
+
+**可以通用的部分**：台账增删改、自报不算验收、变异探针、契约先行、按周交接这些做法，本身跟工具无关，在任何工具里都可以手动照搬。
 
 ## 其他说明
 
