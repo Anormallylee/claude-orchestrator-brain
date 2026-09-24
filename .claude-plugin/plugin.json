@@ -1,0 +1,13 @@
+{
+  "name": "claude-skills",
+  "version": "0.2.0",
+  "description": "主脑会话调度：一个会话负责派活、独立验收、合入、记账，讨论会话把结论交回主脑",
+  "author": {
+    "name": "Anormallylee",
+    "url": "https://github.com/Anormallylee"
+  },
+  "homepage": "https://github.com/Anormallylee/claude-skills",
+  "repository": "https://github.com/Anormallylee/claude-skills",
+  "license": "MIT",
+  "keywords": ["orchestration", "multi-session", "brain", "主脑"]
+}

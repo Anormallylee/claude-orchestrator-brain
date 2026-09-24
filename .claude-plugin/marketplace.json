@@ -1,0 +1,16 @@
+{
+  "name": "claude-skills",
+  "owner": {
+    "name": "Anormallylee"
+  },
+  "metadata": {
+    "description": "Anormallylee 的通用 Claude Code skill"
+  },
+  "plugins": [
+    {
+      "name": "claude-skills",
+      "source": "./",
+      "description": "主脑会话调度：brain + brain-handback"
+    }
+  ]
+}

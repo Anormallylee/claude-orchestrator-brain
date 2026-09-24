@@ -21,10 +21,13 @@ link() {
   echo "$dst -> $src"
 }
 
-for d in "$REPO"/skills/*/; do
-  name="$(basename "$d")"
-  link "${d%/}" "$CLAUDE_DIR/skills/$name"
-done
+# --styles-only：skill 已经通过 plugin 安装时，只装 output style（plugin 目前不支持打包 output style）
+if [ "${1:-}" != "--styles-only" ]; then
+  for d in "$REPO"/skills/*/; do
+    name="$(basename "$d")"
+    link "${d%/}" "$CLAUDE_DIR/skills/$name"
+  done
+fi
 
 for f in "$REPO"/output-styles/*.md; do
   link "$f" "$CLAUDE_DIR/output-styles/$(basename "$f")"
