@@ -54,7 +54,7 @@ plugin 目前不支持打包 output style，所以 output style 需要另外装�
 ```bash
 git clone https://github.com/Anormallylee/claude-orchestrator-brain.git
 cd claude-orchestrator-brain
-./install.sh --styles-only
+./install.sh --styles-only            # macOS 桌面 App 用户可改为 --styles-only --notify，顺带装分支卡片通知
 ```
 
 用 plugin 安装后，命令名会带上前缀：`/orchestrator:brain`、`/orchestrator:brain-handback`。
@@ -67,7 +67,7 @@ cd claude-orchestrator-brain
 ./install.sh
 ```
 
-skill 和 output style 都会以软链接的形式装到 `~/.claude/` 下，命令名是 `/brain`、`/brain-handback`。在仓库里改文件，本机立即生效。已经存在的同名文件会移到 `~/.claude/backups/`。
+macOS 桌面 App 用户可以加 `--notify`，顺带装分支卡片通知（见下文）。skill 和 output style 都会以软链接的形式装到 `~/.claude/` 下，命令名是 `/brain`、`/brain-handback`。在仓库里改文件，本机立即生效。已经存在的同名文件会移到 `~/.claude/backups/`。
 
 两种方式只选一种。都装的话，菜单里会出现两份同样的 skill。
 
@@ -103,9 +103,12 @@ skill 和 output style 都会以软链接的形式装到 `~/.claude/` 下，命�
 `notify/` 用一个 hook 补上这个提醒：主脑每生成一张卡片，就弹一条 macOS 通知，标题写着分支名，**点通知会切回 Claude**。
 
 ```bash
-cd claude-orchestrator-brain/notify
-./install.sh              # 卸载：./install.sh --uninstall
+./install.sh --notify                  # 软链接安装的用户
+./install.sh --styles-only --notify    # plugin 安装的用户（和装 output style 合成一步）
+./notify/install.sh --uninstall        # 卸载
 ```
+
+**为什么不打包进 plugin**：plugin 会装到所有环境，而这个问题只在 macOS 桌面 App 上存在。命令行和 IDE 里没有 `spawn_task`，hook 不会触发；Windows 桌面 App 有 `spawn_task`，但跑不了 bash 和 osascript。另外，通知会改变系统行为（首次会弹授权），应当由用户显式选择。所以保持为可选组件。
 
 安装脚本会：
 - 用系统自带的 `osacompile` 编译一个不占 Dock 的小 App `ClaudeNotify.app`，放在 `~/.claude/hooks/notify/` 下；
@@ -120,7 +123,7 @@ cd claude-orchestrator-brain/notify
 
 **为什么不直接用 `osascript`**：命令行里执行 `display notification`，通知会记在「脚本编辑器」名下，点击只会打开脚本编辑器，没法指定点击后去哪。按 Apple 的 [Mac Automation Scripting Guide](https://developer.apple.com/library/archive/documentation/LanguagesUtilities/Conceptual/MacAutomationScriptingGuide/DisplayNotifications.html)，把脚本编译成独立 App 后，通知就记在这个 App 名下，点击通知会重新打开它并再次执行 `run`。`ClaudeNotify` 利用这一点：被 hook 调起时发通知，被点击打开时把 Claude 切到前台。这样不用装 `terminal-notifier` 之类的第三方工具。
 
-**限制**：点通知只会把 Claude 切到前台，不会精确跳到发出卡片的那个会话。依赖 `jq`（`brew install jq`）。
+**限制**：仅 macOS 桌面 App（hook 脚本在其他平台会静默跳过）；Windows 桌面 App 需要另写 PowerShell 版本，欢迎 PR。点通知只会把 Claude 切到前台，不会精确跳到发出卡片的那个会话。依赖 `jq`（`brew install jq`）。
 
 ## 兼容性
 
@@ -137,6 +140,8 @@ cd claude-orchestrator-brain/notify
 | 其他 AI 编程工具 | ❌ skill 用不了 | 只能手动照搬做法 | — |
 
 欢迎在 issue 里补充实测结果，尤其是 Linux、Windows 和 IDE 插件。
+
+**分支卡片通知**（`--notify`）：仅 macOS 桌面 App，已实测；其他环境不需要也不适用。
 
 **桌面 App 专属的工具**（名字带 `ccd_` 前缀）：`spawn_task`（开新会话派活）、`list_sessions` / `get_session` / `archive_session`（盘点和归档会话）、`set_session_output_style`（切 output style）。其他环境里没有这些工具，skill 会自动退回手动方式，不会报错停下。
 

@@ -2,6 +2,7 @@
 # PostToolUse hook（matcher: mcp__ccd_session__spawn_task）
 # 主脑生成分支卡片后弹 macOS 通知，避免用户切走时漏点。
 # 通知由 ClaudeNotify.app 发出（记在它名下），点击通知会切回 Claude。
+[ "$(uname)" = "Darwin" ] || exit 0  # 仅 macOS；其他平台静默跳过，避免每次派活都报 hook 错误
 D="$HOME/.claude/hooks/notify"
 input=$(cat)
 title=$(printf '%s' "$input" | jq -r '.tool_input.title // "新分支任务"' | tr '\t\n' '  ')
