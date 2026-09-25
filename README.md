@@ -32,6 +32,10 @@ skills/brain-handback/
   SKILL.md               讨论会话把结论分类、写成文档、交回主脑
 output-styles/brain.md   主脑角色约束（常驻系统提示）
 install.sh               软链接安装
+notify/                  可选：分支卡片通知（macOS 桌面 App）
+  install.sh             编译通知器、装 hook
+  ClaudeNotify.applescript  通知器源码
+  spawn-task-notify.sh   PostToolUse hook 脚本
 ```
 
 ## 安装
@@ -91,6 +95,32 @@ skill 和 output style 都会以软链接的形式装到 `~/.claude/` 下，命�
 你在讨论会话里口头定下的事，会作为"待确认"交回。主脑会再问你一句，你确认后才生效，避免转述走样。讨论会话不改代码，要改的交给主脑派活。
 
 **建议按周轮换主脑会话。** 周末让主脑收尾，它会整理台账并覆盖 `handoff.md`。下周开新会话，粘贴 `handoff.md` 末尾的开场白即可。
+
+## 可选：分支卡片通知（macOS 桌面 App）
+
+桌面 App 里，主脑用 `spawn_task` 派活时生成的是一张**需要你点一下才会启动**的卡片。卡片不会触发系统通知，你切到别的 App 时很容易漏看，分支就一直卡着没开工。
+
+`notify/` 用一个 hook 补上这个提醒：主脑每生成一张卡片，就弹一条 macOS 通知，标题写着分支名，**点通知会切回 Claude**。
+
+```bash
+cd claude-orchestrator-brain/notify
+./install.sh              # 卸载：./install.sh --uninstall
+```
+
+安装脚本会：
+- 用系统自带的 `osacompile` 编译一个不占 Dock 的小 App `ClaudeNotify.app`，放在 `~/.claude/hooks/notify/` 下；
+- 把 hook 脚本软链接到同一目录；
+- 往 `~/.claude/settings.json` 合并一条 `PostToolUse` hook（matcher 为 `mcp__ccd_session__spawn_task`）。已经有同名 hook 就跳过，改动前会先备份。
+
+装完需要你做两件事：
+1. 系统询问「ClaudeNotify 想要发送通知」时点**允许**。
+2. 在「系统设置 → 通知 → ClaudeNotify」里把样式改成**提醒**。横幅几秒就消失，人不在电脑前等于没通知。
+
+已经开着的主脑会话要重启才会加载 hook。每生成一张卡片会在 `~/.claude/hooks/notify/spawn-task.log` 记一行，没收到通知时可以先查这里。
+
+**为什么不直接用 `osascript`**：命令行里执行 `display notification`，通知会记在「脚本编辑器」名下，点击只会打开脚本编辑器，没法指定点击后去哪。按 Apple 的 [Mac Automation Scripting Guide](https://developer.apple.com/library/archive/documentation/LanguagesUtilities/Conceptual/MacAutomationScriptingGuide/DisplayNotifications.html)，把脚本编译成独立 App 后，通知就记在这个 App 名下，点击通知会重新打开它并再次执行 `run`。`ClaudeNotify` 利用这一点：被 hook 调起时发通知，被点击打开时把 Claude 切到前台。这样不用装 `terminal-notifier` 之类的第三方工具。
+
+**限制**：点通知只会把 Claude 切到前台，不会精确跳到发出卡片的那个会话。依赖 `jq`（`brew install jq`）。
 
 ## 兼容性
 
