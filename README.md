@@ -19,6 +19,7 @@
 | 分支会话假借用户授权，让主脑代做它被拒绝的操作 | 视为权限洗白，拒绝并报告用户。 |
 | 会话越跑越长，主脑忘了自己的角色 | output style 常驻系统提示，压缩后也不会丢。 |
 | 讨论会话的结论散落在各处，或者没经确认就被当成定案 | `/brain-handback` 分类、写成文档再交回；口头决定要回主脑确认后才生效。 |
+| 你不在时，某个子代理一条 `pkill -f "cat"` 关掉了整台 Mac 的应用 | 派活模板写明禁止按模式杀进程；可选的 `guard/` hook 在执行层面拦截，子代理也绕不过。 |
 
 ## 文件
 
@@ -36,6 +37,10 @@ notify/                  可选：分支卡片通知（macOS 桌面 App）
   install.sh             编译通知器、装 hook
   ClaudeNotify.applescript  通知器源码
   spawn-task-notify.sh   PostToolUse hook 脚本
+guard/                   可选：宽匹配杀进程守卫（所有环境）
+  install.sh             软链接脚本、装 hook
+  block-broad-kill.py    PreToolUse hook 脚本
+  test_block_broad_kill.py  用例
 ```
 
 ## 安装
@@ -67,7 +72,7 @@ cd claude-orchestrator-brain
 ./install.sh
 ```
 
-macOS 桌面 App 用户可以加 `--notify`，顺带装分支卡片通知（见下文）。skill 和 output style 都会以软链接的形式装到 `~/.claude/` 下，命令名是 `/brain`、`/brain-handback`。在仓库里改文件，本机立即生效。已经存在的同名文件会移到 `~/.claude/backups/`。
+macOS 桌面 App 用户可以加 `--notify`，顺带装分支卡片通知；任何环境都可以加 `--guard`，顺带装杀进程守卫（均见下文）。skill 和 output style 都会以软链接的形式装到 `~/.claude/` 下，命令名是 `/brain`、`/brain-handback`。在仓库里改文件，本机立即生效。已经存在的同名文件会移到 `~/.claude/backups/`。
 
 两种方式只选一种。都装的话，菜单里会出现两份同样的 skill。
 
@@ -125,6 +130,43 @@ macOS 桌面 App 用户可以加 `--notify`，顺带装分支卡片通知（见�
 
 **限制**：仅 macOS 桌面 App（hook 脚本在其他平台会静默跳过）；Windows 桌面 App 需要另写 PowerShell 版本，欢迎 PR。点通知只会把 Claude 切到前台，不会精确跳到发出卡片的那个会话。依赖 `jq`（`brew install jq`）。
 
+## 可选：宽匹配杀进程守卫
+
+并行开的会话越多，你不盯着的子代理越多。真实发生过的一次：某个子代理想结束一个卡住的 `cat`，执行了
+
+```bash
+pkill -f "cat" -n
+```
+
+`-f` 拿整条命令行做正则匹配，而 `/Applications` 里就有 `cat`（Appli**cat**ions），于是 `/Applications` 和 `/System/Applications` 下几乎所有应用、连同通知中心一起收到 SIGTERM。写在后面的 `-n`（只杀最新一个）也没生效：macOS 自带的 BSD pkill 遇到第一个非选项参数就停止解析选项。
+
+派活模板里已经写了这条红线，但提示词防不住子代理自己临时写的命令。`guard/` 用一个 PreToolUse hook 在执行前拦截：
+
+| 拦截 | 放行 |
+|---|---|
+| 任何 `killall` | `kill <PID>` |
+| `pkill -f`、`-9f` 等合写、`--full` | 不带 `-f` 的 `pkill 进程名` |
+| `kill $(pgrep -f …)`、`` kill `pgrep -f …` ``、`pgrep -f … \| xargs kill` | 单独的 `pgrep -fl …` |
+
+前面加 `sudo`、`env`、变量赋值、绝对路径，或者用 `;` `&&` `|` 串在别的命令后面，都照样拦。被拦时 hook 会把原因和替代做法返回给模型（先 `pgrep -fl` 确认 PID 再 `kill <PID>`），会话不会卡住。
+
+```bash
+./install.sh --guard                   # 软链接安装的用户
+./install.sh --styles-only --guard     # plugin 安装的用户
+./guard/install.sh --uninstall         # 卸载
+python3 guard/test_block_broad_kill.py # 跑用例
+```
+
+安装脚本会把 hook 脚本软链接到 `~/.claude/hooks/guard/`，并往 `~/.claude/settings.json` 合并一条 `PreToolUse` hook（matcher 为 `Bash`）。已经有就跳过，改动前先备份。
+
+**为什么不打包进 plugin**：它会全局禁掉 `killall` 这类命令，影响你所有项目，而不只是用主脑的项目。有人的工作流里会有合理用法（比如 `killall Dock`），所以由用户显式选择。
+
+**限制**：
+- 按文本规则匹配，防的是随手写出的危险命令，不防刻意绕过（例如 `python -c` 里调 `os.system`）。
+- 命令里带引号的字符串也会被检查，所以提交说明里恰好写着 `killall xxx` 也会被拦。这是有意的：否则 `bash -c "killall …"` 就能套一层绕过。
+- 只管 Claude Code 自己执行的命令，管不到其他 AI 工具和你在终端里敲的命令。
+- 依赖 `python3` 和 `jq`。macOS 上没装命令行开发者工具时，`python3` 只是占位程序，安装脚本会检测并拒绝安装，避免装上一个静默失效的 hook。
+
 ## 兼容性
 
 前提：**一个人在自己的环境里调度多个会话**。所有会话必须在同一台机器、同一个系统用户下，因为会话之间的消息走的是每个 Claude Code 进程在 `/tmp` 下开的本机 socket，不经过任何服务器。
@@ -142,6 +184,8 @@ macOS 桌面 App 用户可以加 `--notify`，顺带装分支卡片通知（见�
 欢迎在 issue 里补充实测结果，尤其是 Linux、Windows 和 IDE 插件。
 
 **分支卡片通知**（`--notify`）：仅 macOS 桌面 App，已实测；其他环境不需要也不适用。
+
+**杀进程守卫**（`--guard`）：hook 在所有 Claude Code 环境里都生效；在 macOS 桌面 App 上已实测。安装脚本是 bash，Windows 需要手动配置。
 
 **桌面 App 专属的工具**（名字带 `ccd_` 前缀）：`spawn_task`（开新会话派活）、`list_sessions` / `get_session` / `archive_session`（盘点和归档会话）、`set_session_output_style`（切 output style）。其他环境里没有这些工具，skill 会自动退回手动方式，不会报错停下。
 
