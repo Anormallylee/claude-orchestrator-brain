@@ -4,6 +4,9 @@
 #   2. 软链接 hook 脚本到同一目录
 #   3. 把 PostToolUse hook 合并进 ~/.claude/settings.json（已存在则跳过，改前备份）
 # 卸载：./install.sh --uninstall
+#
+# 已过时：新版桌面 App 的派活工具是 start_session，直接启动会话、不生成待点击卡片，
+# 本 hook 的 matcher（spawn_task）也不会再触发。仅为旧版桌面 App 保留，安装需加 --legacy。
 set -euo pipefail
 
 REPO="$(cd "$(dirname "$0")" && pwd)"
@@ -30,6 +33,12 @@ if [ "${1:-}" = "--uninstall" ]; then
   rm -rf "$DEST/ClaudeNotify.app" "$DEST/spawn-task-notify.sh" "$DEST/pending.txt"
   echo "已卸载（日志 $DEST/spawn-task.log 保留）"
   exit 0
+fi
+
+if [ "${1:-}" != "--legacy" ]; then
+  echo "分支卡片通知已过时：新版桌面 App 派活会直接启动会话，不再生成待点击卡片。"
+  echo "仍在用旧版桌面 App（派活工具叫 spawn_task）的，执行 $0 --legacy 安装。"
+  exit 1
 fi
 
 mkdir -p "$DEST"

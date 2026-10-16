@@ -33,7 +33,7 @@ skills/brain-handback/
   SKILL.md               讨论会话把结论分类、写成文档、交回主脑
 output-styles/brain.md   主脑角色约束（常驻系统提示）
 install.sh               软链接安装
-notify/                  可选：分支卡片通知（macOS 桌面 App）
+notify/                  已过时：分支卡片通知（仅旧版 macOS 桌面 App）
   install.sh             编译通知器、装 hook
   ClaudeNotify.applescript  通知器源码
   spawn-task-notify.sh   PostToolUse hook 脚本
@@ -59,7 +59,7 @@ plugin 目前不支持打包 output style，所以 output style 需要另外装�
 ```bash
 git clone https://github.com/Anormallylee/claude-orchestrator-brain.git
 cd claude-orchestrator-brain
-./install.sh --styles-only            # macOS 桌面 App 用户可改为 --styles-only --notify，顺带装分支卡片通知
+./install.sh --styles-only
 ```
 
 用 plugin 安装后，命令名会带上前缀：`/orchestrator:brain`、`/orchestrator:brain-handback`。
@@ -72,7 +72,7 @@ cd claude-orchestrator-brain
 ./install.sh
 ```
 
-macOS 桌面 App 用户可以加 `--notify`，顺带装分支卡片通知；任何环境都可以加 `--guard`，顺带装杀进程守卫（均见下文）。skill 和 output style 都会以软链接的形式装到 `~/.claude/` 下，命令名是 `/brain`、`/brain-handback`。在仓库里改文件，本机立即生效。已经存在的同名文件会移到 `~/.claude/backups/`。
+任何环境都可以加 `--guard`，顺带装杀进程守卫（见下文）。skill 和 output style 都会以软链接的形式装到 `~/.claude/` 下，命令名是 `/brain`、`/brain-handback`。在仓库里改文件，本机立即生效。已经存在的同名文件会移到 `~/.claude/backups/`。
 
 两种方式只选一种。都装的话，菜单里会出现两份同样的 skill。
 
@@ -101,15 +101,16 @@ macOS 桌面 App 用户可以加 `--notify`，顺带装分支卡片通知；任�
 
 **建议按周轮换主脑会话。** 周末让主脑收尾，它会整理台账并覆盖 `handoff.md`。下周开新会话，粘贴 `handoff.md` 末尾的开场白即可。
 
-## 可选：分支卡片通知（macOS 桌面 App）
+## 已过时：分支卡片通知（仅旧版 macOS 桌面 App）
 
-桌面 App 里，主脑用 `spawn_task` 派活时生成的是一张**需要你点一下才会启动**的卡片。卡片不会触发系统通知，你切到别的 App 时很容易漏看，分支就一直卡着没开工。
+> **新版桌面 App 不需要这个组件。** 派活工具已换成 `start_session`，主脑按 skill 的约定用"用户要求"方式派活，会话立刻启动，没有待点击的卡片；本组件挂在旧工具名 `spawn_task` 上，新版里也不会再触发。已经装过的，执行 `./notify/install.sh --uninstall` 卸载。下文只为还在用旧版 App 的人保留，安装命令要加 `--legacy`。
+
+旧版桌面 App 里，主脑用 `spawn_task` 派活时生成的是一张**需要你点一下才会启动**的卡片。卡片不会触发系统通知，你切到别的 App 时很容易漏看，分支就一直卡着没开工。
 
 `notify/` 用一个 hook 补上这个提醒：主脑每生成一张卡片，就弹一条 macOS 通知，标题写着分支名，**点通知会切回 Claude**。
 
 ```bash
-./install.sh --notify                  # 软链接安装的用户
-./install.sh --styles-only --notify    # plugin 安装的用户（和装 output style 合成一步）
+./notify/install.sh --legacy           # 安装（仅旧版 App）
 ./notify/install.sh --uninstall        # 卸载
 ```
 
@@ -183,11 +184,11 @@ python3 guard/test_block_broad_kill.py # 跑用例
 
 欢迎在 issue 里补充实测结果，尤其是 Linux、Windows 和 IDE 插件。
 
-**分支卡片通知**（`--notify`）：仅 macOS 桌面 App，已实测；其他环境不需要也不适用。
+**分支卡片通知**：已过时，仅旧版 macOS 桌面 App 适用；新版桌面 App 和其他环境都不需要。
 
 **杀进程守卫**（`--guard`）：hook 在所有 Claude Code 环境里都生效；在 macOS 桌面 App 上已实测。安装脚本是 bash，Windows 需要手动配置。
 
-**桌面 App 专属的工具**（名字带 `ccd_` 前缀）：`spawn_task`（开新会话派活）、`list_sessions` / `get_session` / `archive_session`（盘点和归档会话）、`set_session_output_style`（切 output style）。其他环境里没有这些工具，skill 会自动退回手动方式，不会报错停下。
+**桌面 App 专属的工具**（名字带 `ccd_` 前缀）：`start_session`（开新会话派活，旧版叫 `spawn_task`）、`list_sessions` / `get_session` / `archive_session`（盘点和归档会话；`list_sessions` 加 `linked: true` 只列本会话派出的会话）、`set_session_output_style`（切 output style）。其他环境里没有这些工具，skill 会自动退回手动方式，不会报错停下。
 
 **纯命令行版里怎么派活：**
 - **推荐**：用 tmux 或终端分屏开几个窗格，一个窗格跑一个 `claude`。主脑把派活提示贴出来，你粘贴到对应窗格。回报通过 `SendMessage` 自动回到主脑。

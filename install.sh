@@ -2,7 +2,7 @@
 # 把本仓库的 skill 和 output style 软链接到 ~/.claude/
 # 参数（可组合）：
 #   --styles-only  只装 output style（skill 已经通过 plugin 安装时用）
-#   --notify       另外安装分支卡片通知（仅 macOS 桌面 App，见 notify/）
+#   --notify       已过时：新版桌面 App 派活不再生成待点击卡片，只打印说明（见 notify/）
 #   --guard        另外安装宽匹配杀进程守卫（拦 pkill -f / killall，见 guard/）
 # 已存在的非链接文件移到 ~/.claude/backups/claude-orchestrator-brain-<时间>/（放在 skills/ 里会被当成重复 skill 加载）
 set -euo pipefail
@@ -49,9 +49,10 @@ for f in "$REPO"/output-styles/*.md; do
   link "$f" "$CLAUDE_DIR/output-styles/$(basename "$f")"
 done
 
-# --notify：分支卡片通知不打包进 plugin——它只对 macOS 桌面 App 有意义，且会改变系统通知行为，需显式选择
+# --notify：已过时。新版桌面 App 的 start_session 直接启动会话，没有待点击的卡片；旧版仍可用 notify/install.sh --legacy
 if [ "$NOTIFY" = 1 ]; then
-  "$REPO/notify/install.sh"
+  echo "--notify 已过时，跳过：新版桌面 App 派活会直接启动会话，不再需要卡片通知。"
+  echo "还在用旧版桌面 App（派活工具叫 spawn_task）的，执行 ./notify/install.sh --legacy；已装过的可执行 ./notify/install.sh --uninstall 卸载。"
 fi
 
 # --guard：杀进程守卫不打包进 plugin——它会全局禁掉 killall 等命令，影响所有项目，需显式选择
