@@ -2,23 +2,27 @@
 # 安装分支卡片通知（仅 macOS 桌面 App）：
 #   1. 编译 ClaudeNotify.app 到 ~/.claude/hooks/notify/
 #   2. 软链接 hook 脚本到同一目录
-#   3. 把 PostToolUse hook 合并进 ~/.claude/settings.json（已存在则跳过，改前备份）
+#   3. 把 PreToolUse + PostToolUse hook 合并进 ~/.claude/settings.json（改前备份；
+#      旧版只挂 spawn_task 的那条会被替换）
 # 卸载：./install.sh --uninstall
-#
-# 已过时：新版桌面 App 的派活工具是 start_session，直接启动会话、不生成待点击卡片，
-# 本 hook 的 matcher（spawn_task）也不会再触发。仅为旧版桌面 App 保留，安装需加 --legacy。
+# 新旧桌面 App 都适用：新版挂 start_session（只在生成待点击卡片时提醒），旧版挂 spawn_task。
 set -euo pipefail
 
 REPO="$(cd "$(dirname "$0")" && pwd)"
 CLAUDE_DIR="${CLAUDE_DIR:-$HOME/.claude}"
 DEST="$CLAUDE_DIR/hooks/notify"
 SETTINGS="$CLAUDE_DIR/settings.json"
-MATCHER="mcp__ccd_session__spawn_task"
+MATCHER="mcp__ccd_session__start_session|mcp__ccd_session__spawn_task"
+OLD_MATCHER="mcp__ccd_session__spawn_task"
 CMD="bash \"$DEST/spawn-task-notify.sh\""
 BUNDLE_ID="local.claude-orchestrator.notify"
 
 [ "$(uname)" = "Darwin" ] || { echo "仅支持 macOS"; exit 1; }
 command -v jq >/dev/null || { echo "需要 jq：brew install jq"; exit 1; }
+
+# 删掉本组件写过的 hook（含旧版只挂 spawn_task 的那条）
+JQ_REMOVE='reduce ("PreToolUse","PostToolUse") as $e (.;
+  if .hooks[$e] then .hooks[$e] |= map(select(.matcher != $m and .matcher != $o)) else . end)'
 
 backup_settings() {
   [ -f "$SETTINGS" ] && cp "$SETTINGS" "$SETTINGS.bak-$(date +%Y%m%d%H%M%S)"
@@ -28,17 +32,11 @@ if [ "${1:-}" = "--uninstall" ]; then
   if [ -f "$SETTINGS" ]; then
     backup_settings
     tmp="$(mktemp)"
-    jq --arg m "$MATCHER" 'if .hooks.PostToolUse then .hooks.PostToolUse |= map(select(.matcher != $m)) else . end' "$SETTINGS" > "$tmp" && mv "$tmp" "$SETTINGS"
+    jq --arg m "$MATCHER" --arg o "$OLD_MATCHER" "$JQ_REMOVE" "$SETTINGS" > "$tmp" && mv "$tmp" "$SETTINGS"
   fi
   rm -rf "$DEST/ClaudeNotify.app" "$DEST/spawn-task-notify.sh" "$DEST/pending.txt"
   echo "已卸载（日志 $DEST/spawn-task.log 保留）"
   exit 0
-fi
-
-if [ "${1:-}" != "--legacy" ]; then
-  echo "分支卡片通知已过时：新版桌面 App 派活会直接启动会话，不再生成待点击卡片。"
-  echo "仍在用旧版桌面 App（派活工具叫 spawn_task）的，执行 $0 --legacy 安装。"
-  exit 1
 fi
 
 mkdir -p "$DEST"
@@ -56,21 +54,18 @@ echo "已编译 $DEST/ClaudeNotify.app"
 ln -sf "$REPO/spawn-task-notify.sh" "$DEST/spawn-task-notify.sh"
 echo "$DEST/spawn-task-notify.sh -> $REPO/spawn-task-notify.sh"
 
-# 合并 hook 配置
+# 合并 hook 配置：先删旧条目再追加，重复安装结果一致
 [ -f "$SETTINGS" ] || echo '{}' > "$SETTINGS"
-if jq -e --arg m "$MATCHER" '.hooks.PostToolUse // [] | any(.matcher == $m)' "$SETTINGS" >/dev/null; then
-  echo "settings.json 已有 $MATCHER 的 hook，跳过"
-else
-  backup_settings
-  tmp="$(mktemp)"
-  jq --arg m "$MATCHER" --arg c "$CMD" \
-    '.hooks.PostToolUse = ((.hooks.PostToolUse // []) + [{matcher: $m, hooks: [{type: "command", command: $c, timeout: 10, async: true}]}])' \
-    "$SETTINGS" > "$tmp" && mv "$tmp" "$SETTINGS"
-  echo "已写入 settings.json 的 PostToolUse hook"
-fi
+backup_settings
+tmp="$(mktemp)"
+jq --arg m "$MATCHER" --arg o "$OLD_MATCHER" --arg c "$CMD" "$JQ_REMOVE"' |
+  reduce ("PreToolUse","PostToolUse") as $e (.;
+    .hooks[$e] = ((.hooks[$e] // []) + [{matcher: $m, hooks: [{type: "command", command: $c, timeout: 10, async: true}]}]))' \
+  "$SETTINGS" > "$tmp" && mv "$tmp" "$SETTINGS"
+echo "已写入 settings.json 的 PreToolUse / PostToolUse hook"
 
 # 触发一次通知：首次会弹出系统授权
-printf 'notify\t%s\t%s' "安装完成：这是一条测试通知" "claude-orchestrator-brain" > "$DEST/pending.txt"
+printf 'notify\t%s\t%s\t%s' "安装完成：这是一条测试通知" "claude-orchestrator-brain" "Claude：派活卡片通知已就绪" > "$DEST/pending.txt"
 open -g "$DEST/ClaudeNotify.app"
 
 cat <<MSG

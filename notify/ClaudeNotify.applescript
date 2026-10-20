@@ -16,9 +16,11 @@ on run
 		set AppleScript's text item delimiters to ""
 		set t to "新分支任务"
 		set p to ""
+		set h to "Claude：有分支待你点击启动"
 		if (count of parts) ≥ 2 then set t to item 2 of parts
 		if (count of parts) ≥ 3 then set p to item 3 of parts
-		display notification t with title "Claude：有分支待你点击启动" subtitle p sound name "Glass"
+		if (count of parts) ≥ 4 then set h to item 4 of parts
+		display notification t with title h subtitle p sound name "Glass"
 	else
 		tell application "Claude" to activate
 	end if
